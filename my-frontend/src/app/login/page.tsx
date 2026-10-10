@@ -1,4 +1,4 @@
 import { AuthScreen } from "@/components/auth";
 export default function Page() {
-  return <AuthScreen />;
+  return <AuthScreen mode="login" />;
 }
