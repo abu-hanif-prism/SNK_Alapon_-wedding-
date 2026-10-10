@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 // Public gallery URLs live at the site root, so these must never be used as slugs.
 const RESERVED = new Set([
   "api", "admin", "u", "www", "app", "login", "logout", "register", "signup", "onboarding", "dashboard",
-  "payment", "settings", "privacy", "terms", "help", "static", "assets",
+  "payment", "settings", "privacy", "terms", "help", "static", "assets", "templates", "preview", "verify",
 ]);
 
 export const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;

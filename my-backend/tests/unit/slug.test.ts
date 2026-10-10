@@ -30,7 +30,7 @@ describe("slug rules", () => {
   });
 
   it("reserves words the site uses as routes", () => {
-    for (const word of ["api", "admin", "u", "login"]) expect(isReservedSlug(word)).toBe(true);
+    for (const word of ["api", "admin", "u", "login", "templates", "preview", "verify"]) expect(isReservedSlug(word)).toBe(true);
     expect(isReservedSlug("amira-rayhan")).toBe(false);
   });
 
