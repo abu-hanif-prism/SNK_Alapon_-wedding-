@@ -1,0 +1,33 @@
+// Runs before every unit test file. Fixed dummy values (never the developer's real .env),
+// so unit tests behave the same on any machine and can never touch a real database.
+const dummy: Record<string, string> = {
+  NODE_ENV: "test",
+  DATABASE_URL: "postgresql://unit:unit@127.0.0.1:1/unit",
+  CORS_ORIGIN: "http://localhost:3000",
+  FRONTEND_URL: "http://localhost:3000",
+  API_BASE_URL: "http://localhost:5000",
+  JWT_ACCESS_SECRET: "unit_test_access_secret_at_least_32_chars_long",
+  JWT_REFRESH_SECRET: "unit_test_refresh_secret_at_least_32_chars_long",
+  STORAGE_MODE: "mock",
+  JOBS_ENABLED: "false",
+  AWS_REGION: "ap-southeast-1",
+  AWS_ACCESS_KEY_ID: "unit",
+  AWS_SECRET_ACCESS_KEY: "unit",
+  S3_BUCKET: "unit",
+  BKASH_MODE: "mock",
+  BKASH_BASE_URL: "https://bkash.invalid/v1",
+  BKASH_APP_KEY: "unit",
+  BKASH_APP_SECRET: "unit",
+  BKASH_USERNAME: "unit",
+  BKASH_PASSWORD: "unit",
+  BKASH_CALLBACK_URL: "http://localhost:5000/api/payments/bkash/callback",
+  SMS_MODE: "mock",
+  SMS_API_URL: "https://sms.invalid/send",
+  SMS_API_KEY: "unit",
+  SMS_SENDER_ID: "unit",
+  ADMIN_EMAIL: "admin@unit.test",
+  ADMIN_PASSWORD: "unit-password",
+  ADMIN_NAME: "Unit Admin",
+};
+
+for (const [key, value] of Object.entries(dummy)) process.env[key] = value;
