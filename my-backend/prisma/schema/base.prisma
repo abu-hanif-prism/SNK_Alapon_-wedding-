@@ -1,0 +1,11 @@
+// Prisma reads every .prisma file in this folder as one schema.
+// Models are split by domain: auth, billing, event, photo, gallery, audit.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

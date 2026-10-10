@@ -1,0 +1,65 @@
+enum UserRole {
+  ADMIN
+  HOST
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id              String     @id @default(uuid()) @db.Uuid
+  name            String
+  email           String     @unique
+  phone           String?
+  passwordHash    String
+  role            UserRole   @default(HOST)
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?  @db.Timestamptz(3)
+  // Bangladesh mobile number (+8801XXXXXXXXX) confirmed with a 6-digit code.
+  phoneVerifiedAt DateTime?  @db.Timestamptz(3)
+  createdAt       DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime   @updatedAt @db.Timestamptz(3)
+
+  refreshTokens      RefreshToken[]
+  phoneVerifications PhoneVerification[]
+  subscriptions      Subscription[]
+  events             Event[]
+  uploadedPhotos     Photo[]
+  moderationLogs     ModerationLog[]
+  auditLogs          AuditLog[]
+
+  @@map("users")
+}
+
+// One row per code sent. Only the hash of the 6-digit code is stored.
+model PhoneVerification {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("phone_verifications")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}

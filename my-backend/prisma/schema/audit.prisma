@@ -1,0 +1,40 @@
+enum ModerationAction {
+  APPROVE
+  REJECT
+  RESTORE
+  DELETE
+}
+
+model ModerationLog {
+  id        String           @id @default(uuid()) @db.Uuid
+  eventId   String           @db.Uuid
+  photoId   String           @db.Uuid
+  actorId   String           @db.Uuid
+  action    ModerationAction
+  reason    String?
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  actor User  @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([photoId])
+  @@index([eventId])
+  @@map("moderation_logs")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@map("audit_logs")
+}

@@ -1,0 +1,89 @@
+model Template {
+  id       String  @id @default(uuid()) @db.Uuid
+  name     String
+  code     String  @unique
+  isActive Boolean @default(true)
+
+  versions TemplateVersion[]
+
+  @@map("templates")
+}
+
+// One version of a template per edition (20/40/50). An event pins a version.
+// layoutDefinition = default starting layout; the per-event layout lives in gallery_* tables.
+model TemplateVersion {
+  id               String @id @default(uuid()) @db.Uuid
+  templateId       String @db.Uuid
+  version          String
+  edition          Int
+  layoutDefinition Json
+  themeDefaults    Json
+
+  template Template @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  events   Event[]
+
+  @@unique([templateId, version, edition])
+  @@map("template_versions")
+}
+
+// Figma modules (portrait pair, film strip, full-bleed...). A block holds minPhotos..maxPhotos (1-6).
+model BlockType {
+  id               String @id @default(uuid()) @db.Uuid
+  code             String @unique
+  name             String
+  minPhotos        Int
+  maxPhotos        Int
+  responsiveConfig Json
+
+  blocks GalleryBlock[]
+
+  @@map("block_types")
+}
+
+// A chapter, e.g. "Before the ceremony".
+model GallerySection {
+  id       String  @id @default(uuid()) @db.Uuid
+  eventId  String  @db.Uuid
+  title    String
+  subtitle String?
+  position Int
+
+  event  Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  blocks GalleryBlock[]
+
+  @@unique([eventId, position])
+  @@map("gallery_sections")
+}
+
+model GalleryBlock {
+  id          String @id @default(uuid()) @db.Uuid
+  sectionId   String @db.Uuid
+  blockTypeId String @db.Uuid
+  position    Int
+  settings    Json
+
+  section    GallerySection   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  blockType  BlockType        @relation(fields: [blockTypeId], references: [id], onDelete: Restrict)
+  placements PhotoPlacement[]
+
+  @@unique([sectionId, position])
+  @@map("gallery_blocks")
+}
+
+// The same photo may appear in many blocks, but only once per block.
+model PhotoPlacement {
+  id              String  @id @default(uuid()) @db.Uuid
+  blockId         String  @db.Uuid
+  photoId         String  @db.Uuid
+  slot            Int
+  captionOverride String?
+  crop            Json?
+
+  block GalleryBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  photo Photo        @relation(fields: [photoId], references: [id], onDelete: Restrict)
+
+  @@unique([blockId, slot])
+  @@unique([blockId, photoId])
+  @@index([photoId])
+  @@map("photo_placements")
+}

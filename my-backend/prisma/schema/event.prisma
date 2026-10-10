@@ -1,0 +1,98 @@
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  // Read-only but still publicly visible (subscription ended).
+  ARCHIVED
+}
+
+model Event {
+  id                  String      @id @default(uuid()) @db.Uuid
+  // hostId must equal subscription.hostId (checked in the service layer).
+  hostId              String      @db.Uuid
+  subscriptionId      String      @db.Uuid
+  templateVersionId   String      @db.Uuid
+  coverPhotoId        String?     @db.Uuid
+  slug                String      @unique
+  title               String
+  coupleNames         String
+  location            String
+  eventDate           DateTime    @db.Date
+  timezone            String      @default("Asia/Dhaka")
+  edition             Int
+  status              EventStatus @default(DRAFT)
+  brideName           String?
+  groomName           String?
+  venue               String?
+  // Shown to guests on the upload landing page and on the cover.
+  welcomeMessage      String?
+  // Template copy: { introQuote, introText, closingTitle, closingText }.
+  content             Json?
+  requireGuestName    Boolean     @default(false)
+  allowGuestNotes     Boolean     @default(true)
+  // Optional 4-digit PIN guests and viewers must enter. null = anyone with the link.
+  accessPin           String?
+  approvalRequired    Boolean     @default(false)
+  // Hosts can always download. Viewers only when this is on.
+  allowViewerDownload Boolean     @default(false)
+  perGuestUploadLimit Int
+  eventUploadLimit    Int?
+  usedBytes           BigInt      @default(0)
+  photoCount          Int         @default(0)
+  themeOverrides      Json?
+  publishedAt         DateTime?   @db.Timestamptz(3)
+  archivedAt          DateTime?   @db.Timestamptz(3)
+  createdAt           DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime    @updatedAt @db.Timestamptz(3)
+
+  host            User            @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  subscription    Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  templateVersion TemplateVersion @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  coverPhoto      Photo?          @relation("EventCoverPhoto", fields: [coverPhotoId], references: [id], onDelete: SetNull)
+
+  uploadLinks    UploadLink[]
+  guests         Guest[]
+  uploadBatches  UploadBatch[]
+  photos         Photo[]          @relation("EventPhotos")
+  sections       GallerySection[]
+  moderationLogs ModerationLog[]
+
+  @@index([hostId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("events")
+}
+
+model UploadLink {
+  id        String    @id @default(uuid()) @db.Uuid
+  eventId   String    @db.Uuid
+  tokenHash String    @unique
+  // The token encrypted (AES-GCM) so the host can be shown the link and QR again. Never sent raw.
+  tokenEnc  String?
+  opensAt   DateTime  @db.Timestamptz(3)
+  closesAt  DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  event   Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  batches UploadBatch[]
+
+  @@index([eventId])
+  @@map("upload_links")
+}
+
+// Anonymous guest identified by a cookie. Clearing cookies creates a new guest (accepted).
+model Guest {
+  id              String   @id @default(uuid()) @db.Uuid
+  eventId         String   @db.Uuid
+  cookieTokenHash String   @unique
+  displayName     String?
+  uploadedCount   Int      @default(0)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  lastSeenAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  event   Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  batches UploadBatch[]
+
+  @@index([eventId])
+  @@map("guests")
+}

@@ -1,0 +1,95 @@
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+  ONE_TIME
+}
+
+enum SubscriptionStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  EXPIRED
+  CANCELED
+}
+
+enum PaymentProvider {
+  BKASH
+}
+
+enum PaymentStatus {
+  INITIATED
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Plan {
+  id                String        @id @default(uuid()) @db.Uuid
+  code              String        @unique
+  name              String
+  // Base number of photo slots in the starting layout (20, 40, 50).
+  // Not a hard cap: hosts can add more blocks.
+  edition           Int
+  maxEvents         Int
+  storageLimitBytes BigInt
+  price             Decimal       @db.Decimal(12, 2)
+  currency          String        @default("BDT")
+  billingPeriod     BillingPeriod
+  // How long the website stays active after payment (for example 2 or 12 months).
+  // null = follow billingPeriod.
+  durationMonths    Int?
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+// edition, maxEvents, storageLimitBytes and pricePaid are snapshots of the plan
+// at purchase time, so later plan changes don't affect existing customers.
+model Subscription {
+  id                String             @id @default(uuid()) @db.Uuid
+  hostId            String             @db.Uuid
+  planId            String             @db.Uuid
+  status            SubscriptionStatus @default(PENDING_PAYMENT)
+  startsAt          DateTime?          @db.Timestamptz(3)
+  endsAt            DateTime?          @db.Timestamptz(3)
+  edition           Int
+  maxEvents         Int
+  storageLimitBytes BigInt
+  usedBytes         BigInt             @default(0)
+  pricePaid         Decimal            @db.Decimal(12, 2)
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+
+  host     User      @relation(fields: [hostId], references: [id], onDelete: Restrict)
+  plan     Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments Payment[]
+  events   Event[]
+
+  @@index([hostId])
+  @@index([status, endsAt])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id                String          @id @default(uuid()) @db.Uuid
+  subscriptionId    String          @db.Uuid
+  provider          PaymentProvider @default(BKASH)
+  // Our own invoice number, sent to bKash; makes create/execute idempotent.
+  invoiceNumber     String          @unique
+  providerPaymentId String?
+  trxId             String?         @unique
+  payerMsisdn       String?
+  amount            Decimal         @db.Decimal(12, 2)
+  currency          String          @default("BDT")
+  status            PaymentStatus   @default(INITIATED)
+  providerResponse  Json?
+  createdAt         DateTime        @default(now()) @db.Timestamptz(3)
+  paidAt            DateTime?       @db.Timestamptz(3)
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerPaymentId])
+  @@index([subscriptionId])
+  @@map("payments")
+}
